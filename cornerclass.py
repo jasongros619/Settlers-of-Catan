@@ -23,11 +23,11 @@ class Corner(object):
             self.hexes.append(h)
             
         #list of nearby corners' ids
-        self.corn=[]
+        self.corners=[]
         for c in data[15:21]:
             if c==-1:
                 break
-            self.corn.append(c)
+            self.corners.append(c)
         self.owner=None
         self.lvl=0
         

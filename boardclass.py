@@ -11,9 +11,9 @@ class Board(object):
     #creates objects for each hex, corner, and road
     #reads files which tell objects what they are next to
     def __init__(self):
-        self.hex=[]
-        self.corn=[]
-        self.road=[]
+        self.hexes=[]
+        self.corners=[]
+        self.roads=[]
     
         #hexes
         file=open("hexgraphs2.txt",'r')
@@ -23,7 +23,7 @@ class Board(object):
                 if i!=3:
                     line[i]=int(line[i])
             obj=Hex(line)
-            self.hex.append(obj)
+            self.hexes.append(obj)
         file.close()
         
         #corners
@@ -33,7 +33,7 @@ class Board(object):
             for i in range(len(line)):
                 line[i]=int(line[i])
             obj=Corner(line)
-            self.corn.append(obj)
+            self.corners.append(obj)
         file.close()
         
         #roads
@@ -43,40 +43,53 @@ class Board(object):
             for i in range(len(line)):
                 line[i]=int(line[i])
             obj=Road(line)
-            self.road.append(obj)
+            self.roads.append(obj)
 
 
     #shuffles board
     def shuffle(self):
         nums=([2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12])
-        random.shuffle(nums)
+#        random.shuffle(nums)
         resource=(["wheat"]*4+["ore"]*3+["sheep"]*4+["wood"]*4+["brick"]*3+['desert'])
         ports=(["wheat","ore","sheep","wood","brick"]+["3"]*4)
         random.shuffle(nums)
         random.shuffle(resource)
         random.shuffle(ports)
-        n=0
-        r=0
-        p=0
-        for i in range(len(self.hex)):
-            t=self.hex[i].type
-            if t=="r":
-                self.hex[i].type=resource[r]
-                r+=1
-                if self.hex[i].type!="desert":
-                    self.hex[i].num=nums[n]
-                    n+=1
-            if t=="p":
-                self.hex[i].type="ports-"+ports[p]
-                p+=1
+
+        dice_ind = 0 #die-roll number index
+        res_ind  = 0 #resource index
+        port_ind  = 0 #port index
+
+        #hex.type is intially (r)esource, (p)ort or '(s)ea'
+        #hex.type is changed
+        #from 'r' to 'wheat','ore','wheat','wood','brick','desert'
+        #from 'p' to 'wheat'______________________'brick','3'
+        for hex in self.hexes:
+            #resource
+            if hex.type=="r":
+                #set resource type
+                hex.type=resource[res_ind]
+                res_ind += 1
+                #set dice number
+                if hex.type!="desert":
+                    hex.num=nums[dice_ind]
+                    dice_ind+=1
+                else:
+                    hex.rob = True
+            #ports
+            if hex.type=="p":
+                #set port commodity
+                hex.type="ports-"+ports[port_ind]
+                port_ind+=1
+
 
     #draws map using TURTLE. This should be replaced later
     #with a better graphics program
     def drawmap(self):
-        self.hex[8].rob=True #for testing purposes
+#        self.hexes[8].rob=True #for testing purposes
 
         
-        for h in self.hex:
+        for h in self.hexes:
             if h.type=="s" or h.type[:5]=="ports":
                 color="cyan"
             elif h.type=="desert":
@@ -119,7 +132,7 @@ class Board(object):
 ######################
 
     def drawSettlement(self,cid,color="red"):
-        C=self.corn[cid]
+        C=self.corners[cid]
         R=15
         turtle.color("black",color)
         
@@ -137,15 +150,15 @@ class Board(object):
     #returns the id of the nearest corner
     #or -1 if nothing nearby
     def selectCorn(self,x,y):
-        pos=turtle.pos()
-        c=self.corn[0]
-        bestd=15
-        id=-1
-        for i in range(len(self.corn)):
-            d=dist(x,y,self.corn[i].x,self.corn[i].y)
-            if d<bestd:
-                bestd=d
-                id=self.corn[i].id
+        pos=turtle.pos() #turtle.pos()?
+        c = self.corners[0]
+        best_dist = 15
+        id = -1
+        for corn in self.corners:
+            d=dist(x,y,corn.x,corn.y)
+            if d < best_dist:
+                best_dist = d
+                id=corn.id
         return id
 
     #returns the id of the 'selected' corner if you can build there
@@ -155,22 +168,21 @@ class Board(object):
         if id==-1: #when you dont click near a corner
             return -1
 
-            
         #check if you DONT have a road connected to the corner
         #when you need to have one (every time except setup)
-        if (needConnect and ( id not in game.players[pid].corn )):
+        if (needConnect and ( id not in game.players[pid].corners )):
             print("You do not have a road connected to this point")
             return -1
 
         #check if there is a different settlement on the corner
-        if self.corn[id].owner!=None:
+        if self.corners[id].owner!=None:
             print("There is already a settlement there.")
             return -1
 
         #check if there are centers nearby
         nearby=False
-        for c in self.corn[id].corn:
-            if self.corn[c].owner!=None:
+        for c in self.corners[id].corners:
+            if self.corners[c].owner!=None:
                 nearby=True
                 break
         if nearby:
@@ -182,33 +194,35 @@ class Board(object):
 
     
     def buildSettlement(self,x,y,pid,game,needConnect=False):
-        pos=turtle.pos
+        pos=turtle.pos() #right function?
         cid=self.canSettle(x,y,pid,game,needConnect)
         if cid==-1:
             return -1
         #at this poind cid = the id of the corner
+
+        player = game.players[pid]
         
         #add to corners if you are not already connected to corner
         if needConnect==False:
-            if cid not in game.players[pid].corn:
-                game.players[pid].corn.append(cid)
+            if cid not in player.corners:
+                player.corners.append(cid)
                 
         #change the map so that it knows who now owns the corner
-        self.corn[cid].owner=pid
+        self.corners[cid].owner=pid
 
         #add victory points
-        game.players[pid].vp+=1
+        player.vp+=1
 
         #add the settlement to the player
-        game.players[pid].settlements.append(cid)
+        player.settlements.append(cid)
 
         #drawit
-        self.drawSettlement(cid, game.players[pid].color)
+        self.drawSettlement(cid, player.color)
 
         #aquire ports
-        for H in self.corn[cid].hexes:
-            if self.hex[H].type in ["ports-brick","ports-wheat","ports-wood","ports-sheep","ports-ore","ports-3"]:
-                game.players[pid].ports[ self.hex[H].type[6:] ]=True
+        for Hex in [self.hexes[hex_id] for hex_id in self.corners[cid].hexes]:
+            if Hex.type in ["ports-brick","ports-wheat","ports-wood","ports-sheep","ports-ore","ports-3"]:
+                game.players[pid].ports[ Hex.type[6:] ]=True
         return cid
 
 ################
@@ -216,7 +230,7 @@ class Board(object):
 ################
 
     def drawRoad(self,id,color="white"):
-        R=self.road[id]
+        R=self.roads[id]
         p1=abxy( R.c1 )
         p2=abxy( R.c2 )
         turtle.up()
@@ -239,7 +253,7 @@ class Board(object):
         #of each set of corners and the selected point, check what
         #forms the smallest triangle by checking which is the most obtuse
         #at the selected point's angle.
-        for r in self.road:
+        for r in self.roads:
             ang=calcAng(x,y,r.c1,r.c2)
             if ang>best:
                 best=ang
@@ -254,14 +268,14 @@ class Board(object):
             return -1
 
         #check if a road is already there
-        if self.road[id].owner!=None:
+        if self.roads[id].owner!=None:
             print("There is already a road built here")
             return -1
 
         #check if you are connected to road (assuming you need to be)
-        R=self.road[id]
+        R=self.roads[id]
         if needConnect==None:
-            needConnect=game.players[pid].corn
+            needConnect=game.players[pid].corners
         #assume you have a list [x_i , ... , x_n ]
         if not ( R.ci1 in needConnect or R.ci2 in needConnect):
             if game.round==0 or game.round==1:
@@ -282,15 +296,16 @@ class Board(object):
         rid=self.canRoad(x,y,pid,game,needConnect)
         if rid==-1:
             return -1
-        R=self.road[rid]
+        R=self.roads[rid]
+        player = game.players[pid]
         
         #add corners to player
-        if R.ci1 not in game.players[pid].corn:
-            game.players[pid].corn.append(R.ci1)
-        if R.ci2 not in game.players[pid].corn:
-            game.players[pid].corn.append(R.ci2)
+        if R.ci1 not in player.corners:
+            player.corners.append(R.ci1)
+        if R.ci2 not in player.corners:
+            player.corners.append(R.ci2)
         # set board's road's owner to player
-        self.road[rid].owner=pid
+        self.roads[rid].owner = pid
         # draw it
-        self.drawRoad(rid, game.players[pid].color)
+        self.drawRoad(rid, player.color)
         return rid

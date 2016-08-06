@@ -52,12 +52,8 @@ from gameclass import *
 #drawRect(550,-400,300,800,"black","black")
 #drawRect(-550,-400,-300,800,"black","black")
 drawRect(-550,-400,1100,800,(200,200,200),"black")
-print("before game is made")
+
 game=Game()
-print("afta init")
-
-
-
 
 
 
@@ -74,6 +70,5 @@ print("afta init")
 turtle.listen()       
 
 
-print("ho")
 turtle.onscreenclick( game.setuprounds)
 turtle.mainloop()

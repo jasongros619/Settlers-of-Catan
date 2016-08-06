@@ -26,10 +26,10 @@ class Hex(object):
             self.roads.append(i)
 
         #id of nearby hexes
-        self.hex=[]
+        self.hexes=[]
         for i in data[16:22]:
             if i==-1:
                 break
-            self.hex.append(i)
+            self.hexes.append(i)
         self.num=0
         self.rob=False
