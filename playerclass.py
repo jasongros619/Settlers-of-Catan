@@ -12,6 +12,54 @@ class Player(object):
         self.color = col
         self.ports = {"wheat":False,"ore":False,"brick":False,"wood":False,"sheep":False,"3":False}
 
+    #
+    def canBuy(self,item):
+        cards = ()
+        num = ()
+        if item == "settlement":
+            cards = ("wheat","brick","wood","sheep")
+            num = (1,1,1,1)
+        elif item == "city":
+            cards = ("wheat","ore")
+            num = (2,3)
+        elif item == "road":
+            cards = ("brick","wood")
+            num = (1,1)
+        elif item == "development card":
+            cards = ("wheat","ore","sheep")
+            num = (1,1,1)
+        else:
+            print("Unkown item: "+item)
+            return False
+        for i,card in enumerate(cards):
+            if self.cards[card] < num[i]:
+                return False
+        return True
+
+    #pays for item
+    #('settlement','city','road','development card')
+    def payFor(self,item):
+        cards = ()
+        num = ()
+        if item == "settlement":
+            cards = ("wheat","brick","wood","sheep")
+            num = (1,1,1,1)
+        elif item == "city":
+            cards = ("wheat","ore")
+            num = (2,3)
+        elif item == "road":
+            cards = ("brick","wood")
+            num = (1,1)
+        elif item == "development card":
+            cards = ("wheat","ore","sheep")
+            num = (1,1,1)
+        else:
+            print("Unkown item: "+item)
+        for i,card in enumerate(cards):
+            self.cards[card] -= num[i]
+
+
+
     #If user has more than 7 cards
     #must discard half of your cards (rounding down)
     def robber_discard(self):

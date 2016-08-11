@@ -3,8 +3,10 @@ from basic_functions import *
 from hexclass import *
 from cornerclass import *
 from roadclass import *
+
 #uses the 3 .txt files
-import turtle
+import cTurtle
+import os
 INF=float("inf")
 
 class Board(object):
@@ -14,7 +16,8 @@ class Board(object):
         self.hexes=[]
         self.corners=[]
         self.roads=[]
-    
+        self.hex_turtles=[]
+        
         #hexes
         file=open("hexgraphs2.txt",'r')
         for line in file:
@@ -48,10 +51,14 @@ class Board(object):
 
     #shuffles board
     def shuffle(self):
+        for corn in self.corners:
+            corn.ports = None
+        
         nums=([2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12])
 #        random.shuffle(nums)
         resource=(["wheat"]*4+["ore"]*3+["sheep"]*4+["wood"]*4+["brick"]*3+['desert'])
         ports=(["wheat","ore","sheep","wood","brick"]+["3"]*4)
+        random.seed()
         random.shuffle(nums)
         random.shuffle(resource)
         random.shuffle(ports)
@@ -60,13 +67,16 @@ class Board(object):
         res_ind  = 0 #resource index
         port_ind  = 0 #port index
 
+        main_resources = ["wheat","ore","wood","brick","sheep"]
         #hex.type is intially (r)esource, (p)ort or '(s)ea'
         #hex.type is changed
         #from 'r' to 'wheat','ore','wheat','wood','brick','desert'
-        #from 'p' to 'wheat'______________________'brick','3'
+        #from 'p' to 'wheat'______________________'brick','3'        
         for hex in self.hexes:
+            #reset if already done:
+            
             #resource
-            if hex.type=="r":
+            if hex.type in ["r","desert"]+main_resources:
                 #set resource type
                 hex.type=resource[res_ind]
                 res_ind += 1
@@ -77,35 +87,67 @@ class Board(object):
                 else:
                     hex.rob = True
             #ports
-            if hex.type=="p":
+            if hex.type in ["p","ports-3"] + ["ports-"+res for res in main_resources]:
                 #set port commodity
                 hex.type="ports-"+ports[port_ind]
+                #inform neighbor corners
+                for cid in hex.corners:
+                    self.corners[cid].ports = hex.type
+                
                 port_ind+=1
+
+                
+
+                
 
 
     #draws map using TURTLE. This should be replaced later
     #with a better graphics program
     def drawmap(self):
-#        self.hexes[8].rob=True #for testing purposes
-
+        if self.hex_turtles != []:
+            for turt in self.hex_turtles:
+                turt.shape('blank')
+                x,y = abxy((0,0))
+                turt.goto(x,y)
+        else:
+            self.hex_turtles = []
+            for i in range(37):
+                turt = cTurtle.Turtle()
+                turt.shape('blank')
+                turt.up()
+                turt.speed(0)
+                self.hex_turtles.append(turt)
+                #for i in range(37)]
         
         for h in self.hexes:
+            #Move turtles to positions
+            turt = self.hex_turtles[ h.id ]
+            filename = None
             if h.type=="s" or h.type[:5]=="ports":
-                color="cyan"
+                filename = "MediumWater.gif"
             elif h.type=="desert":
-                color="orange"
+                pass
+                #filename = "MediumWater.gif"
             elif h.type=="sheep":
-                color="lime"
+                filename = "MediumPasture.gif"
             elif h.type=="wood":
-                color="green"
+                filename = "MediumForest.gif"
             elif h.type=="brick":
-                color="brown"
+                filename = "MediumBrick.gif"
             elif h.type=="ore":
-                color="grey"
+                filename = "MediumOre.gif"
             elif h.type=="wheat":
-                color="yellow"
-            else:
-                color="black"
+                filename = "MediumWheat.gif"
+
+            if filename != None:
+                path = os.path.dirname(__file__)
+                filename = os.path.join(path,"Media/"+filename)
+                turt.addshape(filename)
+                turt.goto(h.x,h.y)
+                turt.shape(filename)
+
+            #add numbers somehow
+            """
             turtle.color("black",color)
             turtle.begin_fill()
             drawhex(h)
@@ -119,6 +161,9 @@ class Board(object):
                 else:
                     turtle.color("black")
                 turtle.write(h.num,False,"center",("Arial",30,"normal"))
+            #"""
+            #add robber
+            """
             if h.rob:
                 turtle.goto(h.x,h.y-30)
                 turtle.setheading(0)
@@ -126,32 +171,15 @@ class Board(object):
                 turtle.begin_fill()
                 turtle.circle(30)
                 turtle.end_fill()
+            #"""
 
-######################
-#SETTLEMENT FUNCTIONS#
-######################
+##########################
+#SELECT OBJECT FUNCTIONS #
+# > Returns object closest to (x,y) input or None if not close
+##########################
 
-    def drawSettlement(self,cid,color="red"):
-        C=self.corners[cid]
-        R=15
-        turtle.color("black",color)
-        
-        turtle.up()
-        turtle.goto(C.x+R,C.y-R)
-        turtle.down()
-        turtle.begin_fill()
-        turtle.goto(C.x+R,C.y+R)
-        turtle.goto(C.x-R,C.y+R)
-        turtle.goto(C.x-R,C.y-R)
-        turtle.goto(C.x+R,C.y-R)
-        turtle.end_fill()
-        
-        
-    #returns the id of the nearest corner
-    #or -1 if nothing nearby
+    #returns nearest corner object or None if none are close.
     def selectCorn(self,x,y):
-        pos=turtle.pos() #turtle.pos()?
-        c = self.corners[0]
         best_dist = 15
         id = -1
         for corn in self.corners:
@@ -159,93 +187,12 @@ class Board(object):
             if d < best_dist:
                 best_dist = d
                 id=corn.id
-        return id
+        if id == -1:
+            return None
+        else:
+            return self.corners[id]
 
-    #returns the id of the 'selected' corner if you can build there
-    #-1 if you cannot
-    def canSettle(self,x,y,pid,game,needConnect=True):
-        id=self.selectCorn(x,y)
-        if id==-1: #when you dont click near a corner
-            return -1
-
-        #check if you DONT have a road connected to the corner
-        #when you need to have one (every time except setup)
-        if (needConnect and ( id not in game.players[pid].corners )):
-            print("You do not have a road connected to this point")
-            return -1
-
-        #check if there is a different settlement on the corner
-        if self.corners[id].owner!=None:
-            print("There is already a settlement there.")
-            return -1
-
-        #check if there are centers nearby
-        nearby=False
-        for c in self.corners[id].corners:
-            if self.corners[c].owner!=None:
-                nearby=True
-                break
-        if nearby:
-            print("There is a settlement nearby")
-            return -1
-
-        #there are no restrictions
-        return id
-
-    
-    def buildSettlement(self,x,y,pid,game,needConnect=False):
-        pos=turtle.pos() #right function?
-        cid=self.canSettle(x,y,pid,game,needConnect)
-        if cid==-1:
-            return -1
-        #at this poind cid = the id of the corner
-
-        player = game.players[pid]
-        
-        #add to corners if you are not already connected to corner
-        if needConnect==False:
-            if cid not in player.corners:
-                player.corners.append(cid)
-                
-        #change the map so that it knows who now owns the corner
-        self.corners[cid].owner=pid
-
-        #add victory points
-        player.vp+=1
-
-        #add the settlement to the player
-        player.settlements.append(cid)
-
-        #drawit
-        self.drawSettlement(cid, player.color)
-
-        #aquire ports
-        for Hex in [self.hexes[hex_id] for hex_id in self.corners[cid].hexes]:
-            if Hex.type in ["ports-brick","ports-wheat","ports-wood","ports-sheep","ports-ore","ports-3"]:
-                game.players[pid].ports[ Hex.type[6:] ]=True
-        return cid
-
-################
-#ROAD FUNCTIONS#
-################
-
-    def drawRoad(self,id,color="white"):
-        R=self.roads[id]
-        p1=abxy( R.c1 )
-        p2=abxy( R.c2 )
-        turtle.up()
-        turtle.goto( p1[0],p1[1] )
-        turtle.down()
-        turtle.color("black")
-        turtle.pensize( 9 )
-        turtle.goto( p2[0], p2[1] )
-        turtle.pensize(5)
-        turtle.color(color)
-        turtle.goto( p1[0], p1[1] )
-        turtle.pensize( 1 )
-
-    #returns id of closest road
-    #-1 if none are close
+    #returns Road object of nearest road or None if none nearby
     def selectRoad(self,x,y):
         id=-1
         best=2 #radians
@@ -258,54 +205,22 @@ class Board(object):
             if ang>best:
                 best=ang
                 id=r.id
-        return id
+        if id == -1:
+            return None
+        else:
+            return self.roads[id]
 
-    #returns id of selected road if you can build
-    #-1 if you cant
-    def canRoad(self,x,y,pid,game,needConnect):
-        id=self.selectRoad(x,y)
-        if id==-1: #when no road
-            return -1
+    #returns nearest Hex object or None if none nearby.
+    def selectHex(self,x,y,r=100):
+        best_hex = None
+        best_dist = r
 
-        #check if a road is already there
-        if self.roads[id].owner!=None:
-            print("There is already a road built here")
-            return -1
+        for hex in self.hexes:
+            d = dist(x,y,hex.x,hex.y)
+            if d < best_dist:
+                best_dist = d
+                best_hex = hex
 
-        #check if you are connected to road (assuming you need to be)
-        R=self.roads[id]
-        if needConnect==None:
-            needConnect=game.players[pid].corners
-        #assume you have a list [x_i , ... , x_n ]
-        if not ( R.ci1 in needConnect or R.ci2 in needConnect):
-            if game.round==0 or game.round==1:
-                print("You must place a road connected to your newest settlement.")
-            else:
-                print("You do not have a road connected to this point")
-            return -1
+        return best_hex
 
-        #there are no restrictions
-        return id
-
-    #build road if possible
-    #returns -1 if not possible or the road's id if possible
-    def buildRoad(self,x,y,pid,game,needConnect):
-        #find the id of the road
-        #return -1 if you cant build road
-        #set R = the road
-        rid=self.canRoad(x,y,pid,game,needConnect)
-        if rid==-1:
-            return -1
-        R=self.roads[rid]
-        player = game.players[pid]
-        
-        #add corners to player
-        if R.ci1 not in player.corners:
-            player.corners.append(R.ci1)
-        if R.ci2 not in player.corners:
-            player.corners.append(R.ci2)
-        # set board's road's owner to player
-        self.roads[rid].owner = pid
-        # draw it
-        self.drawRoad(rid, player.color)
-        return rid
+#"""

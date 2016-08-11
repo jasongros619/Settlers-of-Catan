@@ -1,4 +1,5 @@
 from basic_functions import abxy
+
 class Corner(object):
     def __init__(self,data):
         self.id=data[0]
@@ -30,4 +31,130 @@ class Corner(object):
             self.corners.append(c)
         self.owner=None
         self.lvl=0
+        self.ports = None
+
+    def drawSettlement(self,turtle,color="red"):
+        R=15
+        turtle.color("black",color)
         
+        turtle.up()
+        turtle.goto(self.x+R,self.y-R)
+        turtle.down()
+        turtle.begin_fill()
+        turtle.goto(self.x+R,self.y+R)
+        turtle.goto(self.x-R,self.y+R)
+        turtle.goto(self.x-R,self.y-R)
+        turtle.goto(self.x+R,self.y-R)
+        turtle.end_fill()
+    #"""
+
+    #bool if player can settle on corner
+    def canSettle(self,player,neighbors,needConnect=True):
+        
+        #Check if corner is connected to your roads
+        if (needConnect and (self.id not in player.corners)):
+            print("You do not have a road connected to this point")
+            return False
+
+        #check if there is a different settlement on the corner
+        if self.owner!=None:
+            print("There is already a settlement there.")
+            return False
+
+        #check if there are centers nearby
+        nearby=False
+        for neighbor in neighbors:
+            if neighbor.owner!=None:
+                nearby = True
+                break
+        if nearby:
+            print("There is a settlement nearby")
+            return False
+
+        #there are no restrictions
+        return True
+
+    def buildSettlement(self,player,turtle,needConnect=True):
+        """
+        * set corner's owner/lvl to settlement
+        * (adds corner to player if new)
+        * add nearby ports, vp, 'settlement' to player
+        * draws settlement
+        """
+        #change Corner object
+        self.owner=player.id
+        self.lvl = 1
+
+        #Adjusts player:
+        #'.vp', '.settlments', '.ports', '.corners'
+        player.vp+=1
+        player.settlements.append(self.id)
+        if self.ports != None:
+            resource = self.ports[6:]
+            player.ports[resource] = True
+        if needConnect == False:
+            if self.id not in player.corners:
+                player.corners.append(self.id)
+
+        #drawit
+        self.drawSettlement(turtle,player.color)
+
+#        for Hex in [self.hexes[hex_id] for hex_id in self.hexes]:
+#            if Hex.type in ["ports-brick","ports-wheat","ports-wood","ports-sheep","ports-ore","ports-3"]:
+#                player.ports[ Hex.type[6:] ]=True
+
+
+    def drawCity(self,color="red"):
+        R=15
+        turtle.color("black",color)
+        
+        turtle.up()
+        turtle.goto(self.x+R,self.y-R)
+        turtle.down()
+        turtle.begin_fill()
+        turtle.goto(self.x+R,self.y+R)
+        turtle.goto(self.x-R,self.y+R)
+        turtle.goto(self.x,self.y+2*R)
+        turtle.goto(self.x-R,self.y-R)
+        turtle.goto(self.x+R,self.y-R)
+        turtle.end_fill()
+
+    def canCity(self,player):
+
+        #NOT OWNED BY PLAYER
+        if self.owner != player.id:
+            if self.lvl == 0:
+                print("There is no settlement there.")
+                return False
+            if self.lvl == 1:
+                print("That is not your settlement.")
+                return False
+            if self.lvl == 2:
+                print("That is not your city.")
+                return False
+        #IS OWNED BY PLAYER
+        else:
+            #Check if already a city
+            if self.lvl == 2:
+                print("This is already a city.")
+                return False
+
+        return True
+
+    def buildCity(self,player):
+        player.vp+=1
+        self.lvl = 2
+        self.drawCity(corner, player.color)
+"""
+#         id a  b r [               ] [               ] [               ] 
+string = "32 4 -2 r 53 50 45 44 49 52 58 65 66 69 70 71 25 28 29 34 35 36".split(" ")
+string = [ int(s) if i!=3 else s for i,s in enumerate( string )]
+
+c = Corner(string)
+print(c.id)
+print(c.a,c.b)
+print(c.x,c.y)
+print(c.roads)
+print(c.hexes)
+print(c.corners)
+"""

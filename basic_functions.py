@@ -1,7 +1,7 @@
 import random
 import math
-import turtle
-turtle.speed(10)
+#import cTurtle
+#cTurtle.speed(10)
 
 def answer(prompt,*arg):
     ans=input(prompt+"\n")
