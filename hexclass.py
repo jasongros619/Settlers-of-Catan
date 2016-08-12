@@ -32,4 +32,4 @@ class Hex(object):
                 break
             self.hexes.append(i)
         self.num=0
-        self.rob=False
+        self.robber=False

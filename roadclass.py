@@ -51,26 +51,28 @@ class Road(object):
 
         #regular turn
         if corner_id == None:
-            if not(self.ci1 in player.corners or self.ci2 in player.corners):
+            if not(self.ci1.id in player.corners or self.ci2.id in player.corners):
                 print("You do not have a road connected to this point.")
                 return False
         #setup round
         else:
-            if not(self.ci1 == corner_id or self.ci2 == corner_id):
+            if not(self.ci1.id == corner_id or self.ci2.id == corner_id):
                 print("You must place a road connected to your newest settlement.")
                 return False
         
         return True
 
     def buildRoad(self,player,turtle):
+
+        # set board's road's owner to player
+        self.owner = player
         
         #add corners to player
-        if self.ci1 not in player.corners:
-            player.corners.append(self.ci1)
-        if self.ci2 not in player.corners:
-            player.corners.append(self.ci2)
-        # set board's road's owner to player
-        self.owner = player.id
+        if self.ci1 not in self.owner.corners:
+            self.owner.corners.append(self.ci1)
+        if self.ci2 not in self.owner.corners:
+            self.owner.corners.append(self.ci2)
+
         # draw it
         self.drawRoad(turtle,player.color)    
 

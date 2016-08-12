@@ -48,6 +48,29 @@ class Board(object):
             obj=Road(line)
             self.roads.append(obj)
 
+        #setup objects
+        for road in self.roads:
+            road.ci1    = self.corners[road.ci1]
+            road.ci2    = self.corners[road.ci2]
+            road.roads  =[ self.roads[id] for id in road.roads ]
+            road.hexes  =[ self.hexes[id] for id in road.hexes ]
+        for corn in self.corners:
+            corn.roads  =[ self.roads[id] for id in corn.roads ]
+            corn.hexes  =[ self.hexes[id] for id in corn.hexes ]
+            corn.corners=[ self.corners[id] for id in corn.corners]
+        for hex in self.hexes:
+            hex.corners =[ self.corners[id] for id in hex.corners]
+            hex.roads   =[ self.roads[id] for id in hex.roads]
+            hex.hexes   =[ self.hexes[id] for id in hex.hexes]
+
+    #gives players cards for their city/settlement(s)
+    #next to hexes with the same number as 'num'
+    def provide(self,num):
+        for hex in self.hexes:
+            if hex.num == num and hex.robber==False:
+                for corn in hex.corners:
+                    if corn.owner != None:
+                        corn.owner.cards[hex.type] += corn.lvl
 
     #shuffles board
     def shuffle(self):
@@ -63,8 +86,8 @@ class Board(object):
         random.shuffle(resource)
         random.shuffle(ports)
 
-        dice_ind = 0 #die-roll number index
-        res_ind  = 0 #resource index
+        dice_ind = 0  #die-roll number index
+        res_ind  = 0  #resource index
         port_ind  = 0 #port index
 
         main_resources = ["wheat","ore","wood","brick","sheep"]
@@ -91,8 +114,8 @@ class Board(object):
                 #set port commodity
                 hex.type="ports-"+ports[port_ind]
                 #inform neighbor corners
-                for cid in hex.corners:
-                    self.corners[cid].ports = hex.type
+                for corn in hex.corners:
+                    corn.ports = hex.type
                 
                 port_ind+=1
 
@@ -103,7 +126,7 @@ class Board(object):
 
     #draws map using TURTLE. This should be replaced later
     #with a better graphics program
-    def drawmap(self):
+    def drawmap(self,turtle):
         if self.hex_turtles != []:
             for turt in self.hex_turtles:
                 turt.shape('blank')
@@ -112,8 +135,7 @@ class Board(object):
         else:
             self.hex_turtles = []
             for i in range(37):
-                turt = cTurtle.Turtle()
-                turt.shape('blank')
+                turt = cTurtle.Turtle('blank')
                 turt.up()
                 turt.speed(0)
                 self.hex_turtles.append(turt)
@@ -146,8 +168,34 @@ class Board(object):
                 turt.goto(h.x,h.y)
                 turt.shape(filename)
 
-            #add numbers somehow
-            """
+        turtle.up()
+        turtle.speed(10)
+        turtle.color("red")
+        for hex in self.hexes:
+            if hex.num in [2,3,4,5,6,8,9,10,11,12]:
+                turtle.goto( hex.x, hex.y-20)
+                turtle.write(hex.num,False,"center",("Arial",30,"normal"))
+
+        turtle.speed(10)
+        drawRect(turtle,-380,260,120,120,"red")
+        drawRect(turtle,-380,-380,120,120,"blue")
+        drawRect(turtle,260,260,120,120,"green")
+        drawRect(turtle,260,-380,120,120,"yellow")
+
+        
+        turtle.up()
+        turtle.goto(-320,310)
+        turtle.write("End Turn",False,"center",("Arial",20,"normal"))
+        turtle.goto(320,310)
+        turtle.write("Trade\n(Not yet)",False,"center",("Arial",20,"normal"))
+        turtle.goto(320,-380)
+        turtle.write("Use\nDev\nCard\n(Not yet)",False,"center",("Arial",20,"normal"))
+        turtle.goto(-320,-330)
+        turtle.write("Buy\n(Not yet)",False,"center",("Arial",20,"normal"))
+        
+        
+        #add numbers somehow
+        """
             turtle.color("black",color)
             turtle.begin_fill()
             drawhex(h)
@@ -161,17 +209,17 @@ class Board(object):
                 else:
                     turtle.color("black")
                 turtle.write(h.num,False,"center",("Arial",30,"normal"))
-            #"""
-            #add robber
-            """
+        #"""
+        #add robber
+        """
             if h.rob:
                 turtle.goto(h.x,h.y-30)
                 turtle.setheading(0)
                 turtle.color("black","black")
                 turtle.begin_fill()
-                turtle.circle(30)
-                turtle.end_fill()
-            #"""
+            turtle.circle(30)
+            turtle.end_fill()
+        #"""
 
 ##########################
 #SELECT OBJECT FUNCTIONS #
@@ -224,3 +272,4 @@ class Board(object):
         return best_hex
 
 #"""
+

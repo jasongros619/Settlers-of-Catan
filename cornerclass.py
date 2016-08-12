@@ -82,19 +82,19 @@ class Corner(object):
         * draws settlement
         """
         #change Corner object
-        self.owner=player.id
+        self.owner=player
         self.lvl = 1
 
         #Adjusts player:
         #'.vp', '.settlments', '.ports', '.corners'
-        player.vp+=1
-        player.settlements.append(self.id)
+        self.owner.vp+=1
+        self.owner.settlements.append(self.id)
         if self.ports != None:
             resource = self.ports[6:]
-            player.ports[resource] = True
+            self.owner.ports[resource] = True
         if needConnect == False:
             if self.id not in player.corners:
-                player.corners.append(self.id)
+                self.owner.corners.append(self.id)
 
         #drawit
         self.drawSettlement(turtle,player.color)
@@ -141,8 +141,8 @@ class Corner(object):
 
         return True
 
-    def buildCity(self,player):
-        player.vp+=1
+    def buildCity(self):
+        self.owner.vp+=1
         self.lvl = 2
         self.drawCity(corner, player.color)
 """

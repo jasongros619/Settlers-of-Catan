@@ -25,16 +25,16 @@ class Game(object):
         self.state="new"
         #set to 'settle' and 'road' during starting rounds
         #set to None, 'robber', 'trade', 'buy',...
-        self.round=0
+        self.round=-1 #-1 for init
         self.lastRoad=-1
         self.lastSettle = -1
         self.board = Board()
         self.turtle = turt #reference to Main's cTurtle
-
+        self.debug = False
 
         #setup board
-        self.board.shuffle()
-        self.board.drawmap()
+#        self.board.shuffle()
+#        self.board.drawmap(self.turtle)
 
         """for debugging
         for r in self.board.corners:
@@ -43,18 +43,37 @@ class Game(object):
             turtle.write(r.id)
         #    print(r.id,r.x,r.c2)
         #"""
-        
+
+    def StartGame(self,x,y):
+        #Player is happy and wants to play
+        print("")
         self.state = "setup_settle"
-        self.turtle.onClick(self.reshuffle_board)
+        self.turtle.onClick(self.setup_settle)
+        self.endturn()
+        print("Player "+str(self.turn+1)+", click on an edge to place a settlement.")
 
-        #turtle.listen()
-        #turtle.onscreenclick( self.setuprounds)
 
-        #turtle.mainloop()
+    def NewGame(self):
+        self.board.shuffle()
+        self.board.drawmap(self.turtle)
+#        print("Click on '?' if you are happy with the board.")
+#        print("Otherwise you can click elsewhere to reshuffle the board.")
+        print("During the first two rounds, each player places a settlement and a road.")
+        print("Click to start game.")
+
+        self.turtle.onClick(self.StartGame)
+            
+
+
+    def setState(self,state):
+        if self.debug:
+            print("==Changing state from "+self.state+" to "+state)
+        self.state = state
 
     #ends turn by adjusting 'self.turn' and 'self.round'
     def reshuffle_board(self,x,y):
         isHappy = True
+        
         if not isHappy: #player wants to reshuffle
             self.turtle.onClick(None)
             self.board.shuffle()
@@ -62,27 +81,38 @@ class Game(object):
             self.turtle.onClick(self.reshuffle_board)
 
         if isHappy:
-            self.state = "setup_settle"
-            print("state set to ",self.state)
+            self.setState("setup_settle")
+#            print("state set to ",self.state)
+            print("============")
+            print("Now each player will place a settlement and a road.")
+            print("")
+            self.endturn()
+            print("Player "+str(self.turn+1)+", please click on a corner to place a settlement.")
             self.turtle.onClick(self.setup_settle)
 
 
+
     def setup_settle(self,x,y):
+        #printCoordinates
+        if self.debug:
+            print("Coordinates (x,y) = ",(x,y))
         corn = self.board.selectCorn(x,y)
         if corn == None:
             print("No corner selected")
             return False
 
         player = self.players[ self.turn ]
-        neighbors = [self.board.corners[cid] for cid in corn.corners]
+        neighbors = [self.board.corners[C.id] for C in corn.corners]
         if not corn.canSettle(player,neighbors,False):
             return False
 
         self.turtle.onClick(None)
         corn.buildSettlement(player,self.turtle,False) #right?
         self.lastSettle = corn.id
-        self.state = "setup_road"
-        print("State set to: "+self.state)
+        print("")
+        self.setState("setup_road")
+        print("Player "+str(self.turn+1)+", click on an edge to place a road.")
+#        print("State set to: "+self.state)
         self.turtle.onClick(self.setup_road)
 
     def setup_road(self,x,y):
@@ -98,26 +128,28 @@ class Game(object):
         self.turtle.onClick(None)
         road.buildRoad(player,self.turtle)
 
-        self.endturn()
-        if self.round == 2:
-            self.state = "roll_die"
-            print("State set to 'roll_die'")
+        if self.round == 1 and self.turn == 0:
+            print("")
+            self.setState("roll_die")
+            self.endturn()
             print("Player "+str(self.turn+1)+", click to roll dice.")
             self.turtle.onClick(self.roll_die)
         else:
-            print("State set to 'setup_settle'")
-            self.state = "setup_settle"
+            #print("State set to 'setup_settle'")
+            print("")
+            self.endturn()
+            self.setState("setup_settle")
+            print("Player "+str(self.turn+1)+", please click on a corner to place a settlement.")
             self.turtle.onClick(self.setup_settle)
 
-    def provide(self,roll):
-        for hex in [hex for hex in self.board.hexes if hex.num == roll and hex.robber == False]:
-            for corner in [self.board.corners[cid] for cid in hex.corners]:
-                if corner.owner != None:
-                    player = self.players[corner.owner]
-                    player.cards[hex.type] += corner.lvl
+    
     
     def endturn(self):
-        if self.round==0:
+        print("====== New Turn ======")
+        if self.round==-1:
+            self.turn=0
+            self.round=0
+        elif self.round==0:
             self.turn+=1
             if self.turn==len(self.players):
                 self.turn=len(self.players)-1
@@ -129,7 +161,7 @@ class Game(object):
                 self.turn=0
         else: #>=2
             self.turn+=1
-            if self.turn==len(players):
+            if self.turn==len(self.players):
                 self.turn=0
                 self.round+=1
     def roll_die(self,x,y):
@@ -138,18 +170,34 @@ class Game(object):
         both = die1+die2
         print("You rolled: "+str(die1)+" and a "+str(die2)+" for a total of "+str(both))
 
-        print("Before roll")
-        for id,player in enumerate(self.players):
-            print("Player "+str(id+1)+" has:")
-            print(player.cards)
+        #print("Before roll:")
+        #for id,player in enumerate(self.players):
+        #    print("Player "+str(id+1)+" has ",player.cards)
+        self.board.provide(both)
+        #print("After roll:")
+        #for id,player in enumerate(self.players):
+        #    print("Player "+str(id+1)+" has ",player.cards)
 
-        print("After roll")
-        for id,player in enumerate(self.players):
-            print("Player "+str(id+1)+" has:")
-            print(player.cards)
+        if both == 7:
+            print("robber?")
+        else:
+            print("You recieved : ...")
+        print("You now have "+str(self.players[self.turn].cards))
+
         
-    def main_turn(x,y):
-        pass
+        print("")
+        self.setState("main_turn")
+        self.turtle.onClick(self.main_turn)
+        
+    def main_turn(self,x,y):
+        choice = self.select_corners(x,y)
+
+        #End Turn
+        if choice == 0:
+            self.setState("roll_die")
+            self.endturn()
+            print("Player "+str(self.turn+1)+", please click to roll dice.")
+            self.turtle.onClick(self.roll_die)
 
 
         # 0,0 -> 0,1
@@ -160,8 +208,34 @@ class Game(object):
         # 1,0 -> 1,-1 -> 2,0
         # x,y
         #
-    
+    def select_corners(self,x,y):
+        if self.debug:
+            print("==Mouse: "+str((x,y)))
 
+        ans = -1
+        if overRect(x,y,-380,260,120,120):
+            ans = 0
+        elif overRect(x,y,260,260,120,120):
+            ans = 1
+        if overRect(x,y,-380,-380,120,120):
+            ans = 2
+        if overRect(x,y,260,-380,120,120):
+            ans = 3
+
+        #print what corner is chosen if any
+        if self.debug:
+            responses = (
+                "==You clicked on: 'End Turn'",
+                "==You clicked on: 'Trade'",
+                "==You clicked on: 'Buy'",
+                "==You clicked on: 'Use Dev Card'"
+            )
+            if ans != -1:
+                print(responses[ans])
+
+        return ans
+
+"""
     def roll(self):
         x = random.randint(1,6)
         y = random.randint(1,6)
@@ -184,6 +258,7 @@ class Game(object):
                         if corn.owner!=None:
                             players[corn.owner].cards[ str(H.type) ]+=corn.lvl
                             players[corn.owner].n_cards += corn.lvl
+"""
 
 #a = cTurtle
 #game = Game(a)

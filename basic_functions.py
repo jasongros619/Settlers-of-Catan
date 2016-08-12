@@ -35,7 +35,7 @@ def abxy( ab,r=60,x=0,y=40):
 
     x=(a+b/2)*r+x
     y=(b*3**0.5/2)*r+y
-    return (x,y)
+    return (x,y-40)
 
 def dist(x1,y1,x2,y2):
     return ((x1-x2)**2+(y1-y2)**2)**0.5
@@ -79,25 +79,25 @@ def cabAng(c,a,b):
     from math import pi
     return acos(cosAng)*180/pi
 
-def overRect(mouseX,mouseY,x,y,w,h):
+def overRect(mouseX,mouseY,llx,lly,w,h):
     #
     # (x,y+h)----(x+w,y+h)
     #   |            |
     #   |            |
     # (x,y)------(x+w,y)
-    return mouseX>x and mouseY>y and mouseX<x+w and mouseY<y+h
+    return mouseX>llx and mouseY>lly and mouseX<llx+w and mouseY<lly+h
     
-def drawRect(x,y,w,h,fillColor="white",lineColor="black"):
+def drawRect(turtle,llx,lly,w,h,fillColor="white",lineColor="black"):
     turtle.up()
     
-    turtle.goto(x,y)
+    turtle.goto(llx,lly)
     turtle.down()
     turtle.color(lineColor,fillColor)
     turtle.begin_fill()
-    turtle.goto(x+w,y)
-    turtle.goto(x+w,y+h)
-    turtle.goto(x,y+h)
-    turtle.goto(x,y)
+    turtle.goto(llx+w,lly)
+    turtle.goto(llx+w,lly+h)
+    turtle.goto(llx,lly+h)
+    turtle.goto(llx,lly)
     turtle.end_fill()
 
 #turtle.goto(0,0)
