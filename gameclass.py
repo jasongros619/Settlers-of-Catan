@@ -12,9 +12,24 @@ class Game(object):
 #        while answer!="3" and answer!="4":
 #            answer = input("Invalid answer. How many players?\n")
         for i in range( int(answer) ):
-            color1 = random.randint(0,255)
-            color2 = random.randint(0,255)
-            color3 = random.randint(0,255)
+            #Choose a random color
+            #that isnt similar to existing ones
+            while True:
+                color1 = random.randint(0,255)
+                color2 = random.randint(0,255)
+                color3 = random.randint(0,255)
+
+                is_too_similar = False
+                for player in self.players:
+                    c1 = player.color[0]
+                    c2 = player.color[1]
+                    c3 = player.color[2]
+                    diffSqr = (c1-color1)**2 + (c2-color2)**2 + (c3-color3)**2
+                    if diffSqr < 10000: #arbitrary number
+                        is_too_similar = True
+                        break
+                if not is_too_similar:
+                    break
             self.players.append( Player(i, (color1,color2,color3)) )
 
     def __init__(self,turt):
@@ -50,7 +65,7 @@ class Game(object):
         self.state = "setup_settle"
         self.turtle.onClick(self.setup_settle)
         self.endturn()
-        print("Player "+str(self.turn+1)+", click on an edge to place a settlement.")
+        print("Player "+str(self.turn+1)+", click on a corner to place a settlement.")
 
 
     def NewGame(self):
@@ -102,8 +117,7 @@ class Game(object):
             return False
 
         player = self.players[ self.turn ]
-        neighbors = [self.board.corners[C.id] for C in corn.corners]
-        if not corn.canSettle(player,neighbors,False):
+        if not corn.canSettle(player,False):
             return False
 
         self.turtle.onClick(None)
@@ -145,7 +159,7 @@ class Game(object):
     
     
     def endturn(self):
-        print("====== New Turn ======")
+        print("\n\n\n====== New Turn ======")
         if self.round==-1:
             self.turn=0
             self.round=0
@@ -199,15 +213,12 @@ class Game(object):
             print("Player "+str(self.turn+1)+", please click to roll dice.")
             self.turtle.onClick(self.roll_die)
 
+        if choice == 1:
+            self.trade_prompts()
+        if choice == 2:
+            self.buy_prompts()
 
-        # 0,0 -> 0,1
-        # 0,1 -> 0,2
-        # 0,2 -> 0,3 -> 1,2
-        # 1,2 -> 1,1
-        # 1,1 -> 1,0
-        # 1,0 -> 1,-1 -> 2,0
-        # x,y
-        #
+
     def select_corners(self,x,y):
         if self.debug:
             print("==Mouse: "+str((x,y)))
@@ -235,30 +246,186 @@ class Game(object):
 
         return ans
 
-"""
-    def roll(self):
-        x = random.randint(1,6)
-        y = random.randint(1,6)
-        if x+y == 7:
-            #Special event
+    def trade_prompts(self):
+        player1 = self.players[self.turn]
+        ans1 = input("Do you wish to trade with players or ports? (players/ports)\n")
 
-            #have players dicard cards
-            for player in self.players:
-                player.robber_discard()
-                                
-            #move robber and steal from nearby players if applicable
-            print("Move robber")
-            print("EVENT NEEDED in boardclass\roll")
+        if ans1 == "players":
+            #SELECT player2
+            for i,player in enumerate(self.players):
+                if i!=self.turn:
+                    print("Player "+str(i+1)+" has "+str(sum(player.cards.values()))+" cards.")
+            pid = input("Who do you wish to trade with? Enter 1, 2, 3 (or 4)\n")
+            if pid not in ["1","2","3","4","5","6"][:len(self.players)]:
+                print("Unkown player number. Trade aborted")
+                return False
+            player2 = self.players[int(pid)-1]
+
+            #Ask to provide resources, check if you have them
+            dic1 = player1.getDic(True)
+            if not player1.canBuy(dic1):
+                print("You do not have enough resources. Trade aborted")
+            dic2 = player2.getDic(False)
+            
+            #Check if player 2 agrees (and can afford the trade).
+            print("=========")
+            print("Player "+str(player2.id+1)+", do you want to trade:")
+            print(str(dic2)+" for "+str(dic1)+" with Player "+str(player1.id+1))
+            cons = input("(y/n) ")
+            while True:
+                if cons == "y":
+                    if player2.canBuy(dic2):
+                        player1.payFor(dic1)
+                        player2.payFor(dic2)
+                        player1.recieve(dic2)
+                        player2.recieve(dic1)
+                        return True
+                    else:
+                        print("Player "+str(player2.id+1)+" cannot afford the trade. Trade aborted.")
+                elif cons == "n":
+                    print("Player "+str(player2.id+1)+" declined. Trade aborted")
+                    return False
+                else:
+                    cons = input("Invalid response. Please answer 'y' or 'n'. ")
         else:
-            #have each appropriate hex give the appropriate corners'
-            #owners their respective resources
-            for H in self.board.hexes:
-                if H.num==x+y and H.rob==False: 
-                    for corn in [self.board.corners[c] for c in h.corners]:
-                        if corn.owner!=None:
-                            players[corn.owner].cards[ str(H.type) ]+=corn.lvl
-                            players[corn.owner].n_cards += corn.lvl
-"""
+            print("Unknown response.")
+
+    def buy_prompts(self):
+        player = self.players[self.turn]
+        items = ["road","settlement","city","dev card"]
+        dics = [{"brick":1,"wood":1},
+                {"brick":1,"wood":1,"sheep":1,"wheat":1},
+                {"ore":3, "wheat":2},
+                {"ore":1, "wheat":1, "sheep":1}
+        ]
+
+        #Display your items + item costs
+        print("The cost of each item is:")
+        for i in range(4):
+            print("%12s : %12s" % (items[i],str(dics[i])))
+        print("You have: "+str(player.cards))
+        print("")
+        
+        #Ask for which resource
+        which = input("Which would you like to buy? (or enter q to quit)\n")
+        while which not in ["q"]+items:
+            which = input("Invalid answer. Which would you like to buy? (or enter q to quit)\n")
+
+        #Quit
+        if which == "q":
+            print("Trade aborted.\n")
+            return False
+
+        #Check if canBuy
+        N = items.index(which)
+        if not player.canBuy(dics[N]):
+            print("You do not have enough resources to buy this card.")
+            print("Trade aborted.\n")
+            return False
+
+        #SWITCH(){}
+        if which == "settlement":
+            print("Click on the corner you wish to build a settlement.")
+            self.setState("_buy_settle")
+            self.turtle.onClick(self._buy_settle)
+        elif which == "road":
+            print("Click on the edge you wish to build a road.")
+            self.setState("_buy_road")
+            self.turtle.onClick(self._buy_road)
+        elif which == "city":
+            print("Click on the corner you wish to build a city.")
+            self.setState("_buy_city")
+            self.turtle.onClick(self._buy_city)
+        else:
+            print("Not dealt with this option yet")
+
+    def _buy_settle(self,x,y):
+        if self.debug:
+            print("Coordinates (x,y) = ",(x,y))
+
+
+        #Select a corner and quit if None
+        corn = self.board.selectCorn(x,y)
+        if corn == None:
+            print("No corner selected.")
+            print("Buying settlement aborted.\n")
+            self.setState("main_turn")
+            self.turtle.onClick(self.main_turn)
+            return False
+
+        #Check that player can place a settlement there
+        player = self.players[self.turn]
+        if not corn.canSettle(player,True):
+            print("Buying settlement aborted.\n")
+            self.setState("main_turn")
+            self.turtle.onClick(self.main_turn)
+            return False
+
+        #Actually build it & revert state
+        corn.buildSettlement(player,self.turtle,True)
+        player.payFor({"brick":1,"wheat":1,"sheep":1,"wood":1})
+        print("You bought a settlement.")
+        self.setState("main_turn")
+        self.turtle.onClick(self.main_turn)
+        return True
+
+    def _buy_road(self,x,y):
+        #Select road if possible
+        road = self.board.selectRoad(x,y)
+        if road == None:
+            print("No road selected")
+            print("Buying road aborted.\n")
+            self.setState("main_turn")
+            self.turtle.onClick(self.main_turn)
+            return False
+
+        #Check if road is buildable
+        player = self.players[ self.turn ]
+        if not road.canRoad(player):
+            #warning message printed
+            print("Buying road aborted.\n")
+            self.setState("main_turn")
+            self.turtle.onClick(self.main_turn)
+            return False
+
+        #Actually build it
+        self.turtle.onClick(None)
+        print("You bought a road.\n")
+        road.buildRoad(player,self.turtle)
+        player.payFor({"brick":1,"wood":1})
+        self.setState("main_turn")
+        self.turtle.onClick(self.main_turn)
+
+    def _buy_city(self,x,y):
+        #Select corn if possible
+        corn = self.board.selectCorn(x,y)
+        if corn == None:
+            print("No corner selected.")
+            print("Buying city aborted.\n")
+            self.setState("main_turn")
+            self.turtle.onClick(self.main_turn)
+            return False
+
+        #Check if player can build it
+        player = self.players[ self.turn ]
+        if not corn.canCity(player):
+            print("Buying city aborted.\n")
+            self.setState("main_turn")
+            self.turtle.onClick(self.main_turn)
+            return False
+
+        #Actually build it
+        self.turtle.onClick(None)
+        print("You bought a city.\n")
+        corn.buildCity(player,self.turtle)
+        player.payFor({"ore":3,"wheat":2})
+        self.setState("main_turn")
+        self.turtle.onClick(self.main_turn)
+        
+            
+        
+
+    
 
 #a = cTurtle
 #game = Game(a)

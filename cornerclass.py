@@ -49,10 +49,10 @@ class Corner(object):
     #"""
 
     #bool if player can settle on corner
-    def canSettle(self,player,neighbors,needConnect=True):
+    def canSettle(self,player,needConnect=True):
         
         #Check if corner is connected to your roads
-        if (needConnect and (self.id not in player.corners)):
+        if (needConnect and (self.id not in [corn.id for corn in player.corners])):
             print("You do not have a road connected to this point")
             return False
 
@@ -63,7 +63,7 @@ class Corner(object):
 
         #check if there are centers nearby
         nearby=False
-        for neighbor in neighbors:
+        for neighbor in self.corners:
             if neighbor.owner!=None:
                 nearby = True
                 break
@@ -88,13 +88,14 @@ class Corner(object):
         #Adjusts player:
         #'.vp', '.settlments', '.ports', '.corners'
         self.owner.vp+=1
-        self.owner.settlements.append(self.id)
+        self.owner.settlements.append(self)
+        if self.id not in [corn.id for corn in player.corners]:
+            self.owner.corners.append(self)
+
+        
         if self.ports != None:
             resource = self.ports[6:]
             self.owner.ports[resource] = True
-        if needConnect == False:
-            if self.id not in player.corners:
-                self.owner.corners.append(self.id)
 
         #drawit
         self.drawSettlement(turtle,player.color)
@@ -104,7 +105,7 @@ class Corner(object):
 #                player.ports[ Hex.type[6:] ]=True
 
 
-    def drawCity(self,color="red"):
+    def drawCity(self,turtle,color="red"):
         R=15
         turtle.color("black",color)
         
@@ -113,8 +114,8 @@ class Corner(object):
         turtle.down()
         turtle.begin_fill()
         turtle.goto(self.x+R,self.y+R)
-        turtle.goto(self.x-R,self.y+R)
         turtle.goto(self.x,self.y+2*R)
+        turtle.goto(self.x-R,self.y+R)
         turtle.goto(self.x-R,self.y-R)
         turtle.goto(self.x+R,self.y-R)
         turtle.end_fill()
@@ -122,7 +123,7 @@ class Corner(object):
     def canCity(self,player):
 
         #NOT OWNED BY PLAYER
-        if self.owner != player.id:
+        if self.owner.id != player.id:
             if self.lvl == 0:
                 print("There is no settlement there.")
                 return False
@@ -132,6 +133,7 @@ class Corner(object):
             if self.lvl == 2:
                 print("That is not your city.")
                 return False
+            
         #IS OWNED BY PLAYER
         else:
             #Check if already a city
@@ -141,10 +143,10 @@ class Corner(object):
 
         return True
 
-    def buildCity(self):
+    def buildCity(self,player,turtle):
         self.owner.vp+=1
         self.lvl = 2
-        self.drawCity(corner, player.color)
+        self.drawCity(turtle,player.color)
 """
 #         id a  b r [               ] [               ] [               ] 
 string = "32 4 -2 r 53 50 45 44 49 52 58 65 66 69 70 71 25 28 29 34 35 36".split(" ")

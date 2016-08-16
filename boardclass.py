@@ -17,6 +17,17 @@ class Board(object):
         self.corners=[]
         self.roads=[]
         self.hex_turtles=[]
+        self.num_turtles=[None]*37
+        for i in range(37):
+            turt = cTurtle.Turtle('blank')
+            turt.speed(10)
+            turt.up()
+            self.hex_turtles.append(turt)
+        for i in range(37):
+            turt = cTurtle.Turtle('blank')
+            turt.speed(10)
+            turt.up()
+            self.num_turtles.append(turt)
         
         #hexes
         file=open("hexgraphs2.txt",'r')
@@ -96,8 +107,6 @@ class Board(object):
         #from 'r' to 'wheat','ore','wheat','wood','brick','desert'
         #from 'p' to 'wheat'______________________'brick','3'        
         for hex in self.hexes:
-            #reset if already done:
-            
             #resource
             if hex.type in ["r","desert"]+main_resources:
                 #set resource type
@@ -106,9 +115,13 @@ class Board(object):
                 #set dice number
                 if hex.type!="desert":
                     hex.num=nums[dice_ind]
-                    dice_ind+=1
+                    #self.num  <= ?
+                    dice_ind += 1
                 else:
+                    hex.num = None
                     hex.rob = True
+                
+                
             #ports
             if hex.type in ["p","ports-3"] + ["ports-"+res for res in main_resources]:
                 #set port commodity
@@ -127,19 +140,14 @@ class Board(object):
     #draws map using TURTLE. This should be replaced later
     #with a better graphics program
     def drawmap(self,turtle):
-        if self.hex_turtles != []:
-            for turt in self.hex_turtles:
+        # 'ERASE' existing a) Numbers b) Hexes
+        for turt in self.num_turtles:
+            #print(type(turt))
+            if turt is not None:
                 turt.shape('blank')
-                x,y = abxy((0,0))
-                turt.goto(x,y)
-        else:
-            self.hex_turtles = []
-            for i in range(37):
-                turt = cTurtle.Turtle('blank')
-                turt.up()
-                turt.speed(0)
-                self.hex_turtles.append(turt)
-                #for i in range(37)]
+        for turt in self.hex_turtles:
+            turt.shape('blank')
+        
         
         for h in self.hexes:
             #Move turtles to positions
@@ -148,18 +156,18 @@ class Board(object):
             if h.type=="s" or h.type[:5]=="ports":
                 filename = "MediumWater.gif"
             elif h.type=="desert":
-                pass
+                filename = "raw_desert.gif"
                 #filename = "MediumWater.gif"
             elif h.type=="sheep":
-                filename = "MediumPasture.gif"
+                filename = "raw_pasture.gif"
             elif h.type=="wood":
-                filename = "MediumForest.gif"
+                filename = "raw_forest.gif"
             elif h.type=="brick":
-                filename = "MediumBrick.gif"
+                filename = "raw_brick.gif"
             elif h.type=="ore":
-                filename = "MediumOre.gif"
+                filename = "raw_ore.gif"
             elif h.type=="wheat":
-                filename = "MediumWheat.gif"
+                filename = "raw_wheat.gif"
 
             if filename != None:
                 path = os.path.dirname(__file__)
@@ -168,13 +176,28 @@ class Board(object):
                 turt.goto(h.x,h.y)
                 turt.shape(filename)
 
-        turtle.up()
-        turtle.speed(10)
-        turtle.color("red")
-        for hex in self.hexes:
-            if hex.num in [2,3,4,5,6,8,9,10,11,12]:
-                turtle.goto( hex.x, hex.y-20)
-                turtle.write(hex.num,False,"center",("Arial",30,"normal"))
+            if h.type in ["sheep","wood","brick","ore","wheat"]:
+                path = os.path.dirname(__file__)
+                num = str(h.num)
+                filename = os.path.join(path,"Media/new_"+num+".gif")
+                if self.num_turtles[h.id] is None:
+                    turt = cTurtle.Turtle('blank')
+                    turt.up()
+                    turt.speed(10)
+                else:
+                    turt = self.num_turtles[h.id]
+                turt.addshape(filename)
+                turt.goto(h.x,h.y)
+                turt.shape(filename)
+                self.num_turtles[h.id]=turt
+
+        #turtle.up()
+        #turtle.speed(10)
+        #turtle.color("red")
+        #for hex in self.hexes:
+        #    if hex.num in [2,3,4,5,6,8,9,10,11,12]:
+        #        turtle.goto( hex.x, hex.y-20)
+        #        turtle.write(hex.num,False,"center",("Arial",30,"normal"))
 
         turtle.speed(10)
         drawRect(turtle,-380,260,120,120,"red")
@@ -187,11 +210,11 @@ class Board(object):
         turtle.goto(-320,310)
         turtle.write("End Turn",False,"center",("Arial",20,"normal"))
         turtle.goto(320,310)
-        turtle.write("Trade\n(Not yet)",False,"center",("Arial",20,"normal"))
+        turtle.write("Trade\n(No ports)",False,"center",("Arial",20,"normal"))
         turtle.goto(320,-380)
         turtle.write("Use\nDev\nCard\n(Not yet)",False,"center",("Arial",20,"normal"))
         turtle.goto(-320,-330)
-        turtle.write("Buy\n(Not yet)",False,"center",("Arial",20,"normal"))
+        turtle.write("Buy\n(No dev)",False,"center",("Arial",20,"normal"))
         
         
         #add numbers somehow
@@ -273,3 +296,9 @@ class Board(object):
 
 #"""
 
+if __name__ == "__main__":
+    b = Board()
+    print("__init__")
+    b.shuffle()
+    print("shuffled")
+    b.drawmap(cTurtle)

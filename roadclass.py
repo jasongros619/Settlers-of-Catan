@@ -51,7 +51,8 @@ class Road(object):
 
         #regular turn
         if corner_id == None:
-            if not(self.ci1.id in player.corners or self.ci2.id in player.corners):
+            corners = [corn.id for corn in player.corners]
+            if not(self.ci1.id in corners or self.ci2.id in corners):
                 print("You do not have a road connected to this point.")
                 return False
         #setup round
@@ -68,9 +69,10 @@ class Road(object):
         self.owner = player
         
         #add corners to player
-        if self.ci1 not in self.owner.corners:
+        corners = [corn.id for corn in  self.owner.corners]
+        if self.ci1.id not in corners:
             self.owner.corners.append(self.ci1)
-        if self.ci2 not in self.owner.corners:
+        if self.ci2.id not in corners:
             self.owner.corners.append(self.ci2)
 
         # draw it

@@ -14,9 +14,9 @@ cTurtle.winsize(780,780)
 game=Game(cTurtle)
 #game.debug = True
 
+if __name__ == "__main__":
 
-game.NewGame()
+    game.NewGame()
 
-#Dont let program quit if it is __Main__
-cTurtle.listen()
-cTurtle.mainloop()
+    cTurtle.listen()
+    cTurtle.mainloop()

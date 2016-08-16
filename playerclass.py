@@ -6,57 +6,33 @@ class Player(object):
         self.used_armies=0
         self.dev_cards=[]
         self.vp = 0
-        self.corners=[]
+        self.corners=[] #actual objects
         self.settlements=[]
         self.roads=[]
         self.color = col
         self.ports = {"wheat":False,"ore":False,"brick":False,"wood":False,"sheep":False,"3":False}
 
-    #
-    def canBuy(self,item):
-        cards = ()
-        num = ()
-        if item == "settlement":
-            cards = ("wheat","brick","wood","sheep")
-            num = (1,1,1,1)
-        elif item == "city":
-            cards = ("wheat","ore")
-            num = (2,3)
-        elif item == "road":
-            cards = ("brick","wood")
-            num = (1,1)
-        elif item == "development card":
-            cards = ("wheat","ore","sheep")
-            num = (1,1,1)
-        else:
-            print("Unkown item: "+item)
-            return False
-        for i,card in enumerate(cards):
-            if self.cards[card] < num[i]:
+    #if player can pay for a dictionary of items
+    def canBuy(self,dic):
+        #    'settlement':{"wheat":1,"brick":1,"wood":1,"sheep":1},
+        #    'city':{"wheat":2,"ore":3},
+        #    'dev':{"wheat":1,"ore":1,"sheep":1},
+        #    'road':{"brick":1,"wood":1}
+        for key in dic:
+            if self.cards[key] < dic[key]:
                 return False
         return True
 
-    #pays for item
-    #('settlement','city','road','development card')
-    def payFor(self,item):
-        cards = ()
-        num = ()
-        if item == "settlement":
-            cards = ("wheat","brick","wood","sheep")
-            num = (1,1,1,1)
-        elif item == "city":
-            cards = ("wheat","ore")
-            num = (2,3)
-        elif item == "road":
-            cards = ("brick","wood")
-            num = (1,1)
-        elif item == "development card":
-            cards = ("wheat","ore","sheep")
-            num = (1,1,1)
-        else:
-            print("Unkown item: "+item)
-        for i,card in enumerate(cards):
-            self.cards[card] -= num[i]
+    #pays for a dictionary of items
+    def payFor(self,dic):
+        for key in dic:
+            self.cards[key] -= dic[key]
+        
+
+    #
+    def recieve(self,dic):
+        for key in dic:
+            self.cards[key] += dic[key]
 
 
 
@@ -94,5 +70,33 @@ class Player(object):
                             if player.cards["sheep"]>0:
                                 player.cards["sheep"]-=1
                                 player.n_cards-=1
+
+    def getDic(self,isTradingAway):
+        print("There are 5 resources: wood, wheat, ore, sheep and brick.")
+        #SELECT Resources to send
+        good = False
+        while not good:
+            if isTradingAway:
+                response = input("Enter each resource you want to trade away, seperated by a space.\n")
+            else:
+                response = input("Enter each resource you want to trade for, seperated by a space.\n") 
+            dic = {}
+            resources=["wheat","ore","brick","sheep","wood"]
+            for r in response.split():
+                if r in resources:
+                    dic[r] = dic.get(r,0)+1
+            good = input("You selected "+str(dic)+". Is this what you want? (y/n)\n")
+            if good == "n":
+                pass
+            elif good == "y":
+                good = True
+            else:
+                print("Unknown response, answer interpreted as yes.")
+
+        return dic
+
+        
+        
+
 
 
